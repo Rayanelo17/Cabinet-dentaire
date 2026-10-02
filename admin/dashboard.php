@@ -112,6 +112,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
       </div>
     </div>
 
+    <!-- Data Viz Dashboard Section -->
+    <h4 class="mt-4 mb-3">Analytique & Prévisions <span class="badge bg-primary fs-6">IA & Data</span></h4>
+    <div class="row mb-5">
+        <div class="col-md-6 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Traitements les plus fréquents</h5>
+                    <div style="position: relative; height:300px; width:100%">
+                        <canvas id="treatmentsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Revenus & Prévision (Série Temporelle)</h5>
+                    <div style="position: relative; height:300px; width:100%">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Formulaire de filtre -->
     <form method="POST" class="mb-3 d-flex align-items-center gap-2">
         <label for="filter_date" class="form-label mb-0">Filtrer par date :</label>
@@ -155,5 +180,98 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    fetch('api_dashboard.php')
+        .then(response => response.json())
+        .then(data => {
+            if(data.error) {
+                console.error("Erreur API:", data.error);
+                return;
+            }
+
+            // --- Graphique des Traitements (Pie Chart) ---
+            const ctxTreatments = document.getElementById('treatmentsChart').getContext('2d');
+            new Chart(ctxTreatments, {
+                type: 'doughnut',
+                data: {
+                    labels: data.treatments.labels,
+                    datasets: [{
+                        data: data.treatments.data,
+                        backgroundColor: [
+                            '#0d6efd', '#6610f2', '#6f42c1', '#d63384', 
+                            '#dc3545', '#fd7e14', '#ffc107', '#198754'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' }
+                    }
+                }
+            });
+
+            // --- Graphique de Revenus & Prévisions (Line Chart) ---
+            // Simple mock ARIMA forecast for the portfolio: add one "forecast" point
+            const revenueLabels = [...data.revenue.labels];
+            const revenueData = [...data.revenue.data];
+            let forecastData = Array(revenueData.length).fill(null);
+            
+            if (revenueData.length > 0) {
+                // Prevision simple: moyenne des 3 derniers mois + 5%
+                const last3 = revenueData.slice(-3);
+                const sum = last3.reduce((a, b) => a + b, 0);
+                const avg = sum / last3.length;
+                const forecast = avg * 1.05;
+                
+                // Add next month prediction
+                revenueLabels.push('Prévision+1');
+                forecastData.push(forecast);
+                // Attach forecast line to the end of actual data line
+                forecastData[revenueData.length - 1] = revenueData[revenueData.length - 1];
+            }
+
+            const ctxRevenue = document.getElementById('revenueChart').getContext('2d');
+            new Chart(ctxRevenue, {
+                type: 'line',
+                data: {
+                    labels: revenueLabels,
+                    datasets: [
+                        {
+                            label: 'Revenus historiques (DH)',
+                            data: revenueData,
+                            borderColor: '#0d6efd',
+                            backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Prévision (Modèle Auto-Régressif)',
+                            data: forecastData,
+                            borderColor: '#ffc107',
+                            borderDash: [5, 5],
+                            backgroundColor: 'transparent',
+                            tension: 0.3,
+                            pointBackgroundColor: '#ffc107',
+                            pointRadius: 5
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        })
+        .catch(err => console.error("Erreur Fetch:", err));
+});
+</script>
 </body>
 </html>

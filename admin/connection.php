@@ -4,7 +4,7 @@ ini_set('display_errors', 1);
 session_start();
 
 $error = '';
-
+//login/pass admin:dr@cabinet.com/admin123
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = trim($_POST['email']);
     $password = $_POST['password'];
@@ -30,11 +30,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['user_id'] = $user['user_id'];
             $_SESSION['role'] = $user['role'];
             $_SESSION['email'] = $email;
-            $_SESSION['first_name'] = $user['first_name'];  // Ajout du prénom
-            $_SESSION['last_name'] = $user['last_name'];    // Ajout du nom
+            $_SESSION['full_name'] = $user['full_name'];
 
             // Redirection vers le tableau de bord
-            header("Location: /test2/".$user['role']."/dashboard.php");
+            if ($user['role'] === 'admin') {
+                header("Location: dashboard.php");
+            } else {
+                header("Location: ../patient/dashboard.php");
+            }
             exit();
         } else {
             $error = "Mot de passe incorrect";
@@ -69,12 +72,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <a href="inscription.php" class="text-link">Créer un compte</a>
     </form>
 
-    <?php if ($_SERVER["REQUEST_METHOD"] == "POST"): ?>
-        <h3>Debug:</h3>
-        <pre>POST: <?php print_r($_POST); ?></pre>
-        <?php if (isset($user)): ?>
-            <pre>User: <?php print_r($user); ?></pre>
-        <?php endif; ?>
-    <?php endif; ?>
+    <!-- Debug retiré -->
 </body>
 </html>

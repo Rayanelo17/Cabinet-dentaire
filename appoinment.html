@@ -402,6 +402,172 @@ document.getElementById('appointment-form').addEventListener('submit', function(
 });
 
 </script>
+<!-- Chatbot UI -->
+<div id="chatbot-container" class="chatbot-container">
+    <div id="chatbot-header" class="chatbot-header">
+        <span><i class="fas fa-robot"></i> Assistant Dentaire IA</span>
+        <button id="chatbot-toggle" aria-label="Toggle Chatbot"><i class="fas fa-chevron-up"></i></button>
+    </div>
+    <div id="chatbot-body" class="chatbot-body">
+        <div class="message bot-message">Bonjour ! Je suis l'assistant IA du cabinet. Avez-vous une douleur particulière ou souhaitez-vous un renseignement avant de prendre rendez-vous ?</div>
+    </div>
+    <div class="chatbot-footer">
+        <input type="text" id="chatbot-input" placeholder="Décrivez votre besoin..." />
+        <button id="chatbot-send" aria-label="Send Message"><i class="fas fa-paper-plane"></i></button>
+    </div>
+</div>
+
+<style>
+.chatbot-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 350px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 1000;
+    font-family: 'Poppins', sans-serif;
+    transition: transform 0.3s ease;
+}
+.chatbot-container.minimized {
+    transform: translateY(calc(100% - 50px));
+}
+.chatbot-header {
+    background: #0d6efd;
+    color: white;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 600;
+}
+.chatbot-header button {
+    background: none; border: none; color: white; cursor: pointer;
+}
+.chatbot-body {
+    padding: 15px;
+    height: 300px;
+    overflow-y: auto;
+    background: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.message {
+    padding: 10px 15px;
+    border-radius: 12px;
+    max-width: 80%;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+.bot-message {
+    background: #e9ecef;
+    align-self: flex-start;
+    border-bottom-left-radius: 2px;
+}
+.user-message {
+    background: #0d6efd;
+    color: white;
+    align-self: flex-end;
+    border-bottom-right-radius: 2px;
+}
+.chatbot-footer {
+    display: flex;
+    padding: 10px;
+    border-top: 1px solid #dee2e6;
+    background: white;
+}
+.chatbot-footer input {
+    flex: 1;
+    border: 1px solid #ced4da;
+    border-radius: 20px;
+    padding: 8px 15px;
+    outline: none;
+}
+.chatbot-footer button {
+    background: #0d6efd;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    margin-left: 10px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background 0.2s;
+}
+.chatbot-footer button:hover {
+    background: #0b5ed7;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const container = document.getElementById('chatbot-container');
+    const toggleBtn = document.getElementById('chatbot-toggle');
+    const header = document.getElementById('chatbot-header');
+    const input = document.getElementById('chatbot-input');
+    const sendBtn = document.getElementById('chatbot-send');
+    const body = document.getElementById('chatbot-body');
+
+    // Démarrer minimisé pour ne pas gêner
+    container.classList.add('minimized');
+    
+    header.addEventListener('click', () => {
+        container.classList.toggle('minimized');
+        toggleBtn.innerHTML = container.classList.contains('minimized') ? '<i class="fas fa-chevron-up"></i>' : '<i class="fas fa-chevron-down"></i>';
+    });
+
+    const addMessage = (text, sender) => {
+        const msg = document.createElement('div');
+        msg.classList.add('message', sender === 'user' ? 'user-message' : 'bot-message');
+        msg.textContent = text;
+        body.appendChild(msg);
+        body.scrollTop = body.scrollHeight;
+    };
+
+    const sendMessage = () => {
+        const text = input.value.trim();
+        if(!text) return;
+        
+        addMessage(text, 'user');
+        input.value = '';
+        
+        // Ajouter un indicateur de chargement
+        const loadingMsg = document.createElement('div');
+        loadingMsg.classList.add('message', 'bot-message');
+        loadingMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> L\'IA réfléchit...';
+        body.appendChild(loadingMsg);
+        body.scrollTop = body.scrollHeight;
+
+        fetch('api_chatbot.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text })
+        })
+        .then(res => res.json())
+        .then(data => {
+            body.removeChild(loadingMsg);
+            if(data.reply) addMessage(data.reply, 'bot');
+            else addMessage("Je n'ai pas pu générer une réponse.", 'bot');
+        })
+        .catch(err => {
+            body.removeChild(loadingMsg);
+            addMessage("Erreur de connexion à l'IA.", 'bot');
+        });
+    };
+
+    sendBtn.addEventListener('click', sendMessage);
+    input.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+});
+</script>
 
 </body>
 </html>
